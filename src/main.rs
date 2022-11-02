@@ -25,6 +25,9 @@ fn main() -> Result<()> {
     let reader = BufReader::new(file);
     for line in reader.lines() {
         let line = line.unwrap();
+        if line.len() == 0 {
+            continue;
+        }
         let format = parse(line)?;
         convert(&format)?;
     }
@@ -38,6 +41,9 @@ fn main() -> Result<()> {
 
     for line in reader.lines() {
         let line = line.unwrap();
+        if line.len() == 0 {
+            continue;
+        }
         let format = parse(line)?;
         let word = convert(&format)?;
         match word {
