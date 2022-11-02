@@ -6,12 +6,12 @@ pub enum Format {
         rd: String,
         rs: String,
     },
-    IFormat16 {
+    I16Format {
         mnemonic: String,
         rd: String,
         imm: String,
     },
-    IFormat32 {
+    I32Format {
         mnemonic: String,
         rd: String,
         rs: String,
@@ -47,7 +47,7 @@ pub fn parse(line: String) -> Result<Format, anyhow::Error> {
 
         "slli" | "srli" | "srai" => {
             if line.len() == 3 {
-                Ok(Format::IFormat16 {
+                Ok(Format::I16Format {
                     mnemonic: line[0].to_string(),
                     rd: line[1].to_string(),
                     imm: line[2].to_string(),
@@ -60,7 +60,7 @@ pub fn parse(line: String) -> Result<Format, anyhow::Error> {
         "addi" | "andi" | "ori" | "xori" | "beq" | "bnq" | "blt" | "bge" | "bltu" | "bgeu"
         | "jalr" | "lb" | "lh" | "lbu" | "lhu" | "lw" | "lui" | "sb" | "sh" | "sw" => {
             if line.len() == 4 {
-                Ok(Format::IFormat32 {
+                Ok(Format::I32Format {
                     mnemonic: line[0].to_string(),
                     rd: line[1].to_string(),
                     rs: line[2].to_string(),

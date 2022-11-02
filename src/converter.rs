@@ -23,13 +23,13 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "sltu" => Ok(0b001010),
             _ => Err(anyhow!("unknown mnemonic {}", mnemonic)),
         },
-        Format::IFormat16 { mnemonic, .. } => match mnemonic.as_str() {
+        Format::I16Format { mnemonic, .. } => match mnemonic.as_str() {
             "slli" => Ok(0b010000),
             "srli" => Ok(0b010001),
             "srai" => Ok(0b010010),
             _ => Err(anyhow!("unknown mnemonic {}", mnemonic)),
         },
-        Format::IFormat32 { mnemonic, .. } => match mnemonic.as_str() {
+        Format::I32Format { mnemonic, .. } => match mnemonic.as_str() {
             "addi" => Ok(0b100000),
             "andi" => Ok(0b100001),
             "ori" => Ok(0b100010),
@@ -60,8 +60,8 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
 
     let rd = match format {
         Format::RFormat { rd, .. }
-        | Format::IFormat16 { rd, .. }
-        | Format::IFormat32 { rd, .. }
+        | Format::I16Format { rd, .. }
+        | Format::I32Format { rd, .. }
         | Format::JFormat { rd, .. } => match rd.as_str() {
             "r0" => Ok(0b00000),
             "r1" => Ok(0b00001),
@@ -100,7 +100,7 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
     };
 
     let rs = match format {
-        Format::RFormat { rs, .. } | Format::IFormat32 { rs, .. } => match rs.as_str() {
+        Format::RFormat { rs, .. } | Format::I32Format { rs, .. } => match rs.as_str() {
             "r0" => Ok(0b00000),
             "r1" => Ok(0b00001),
             "r2" => Ok(0b00010),
@@ -135,11 +135,11 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "r31" => Ok(0b11111),
             _ => Err(anyhow!("unknown register {}", rs)),
         },
-        Format::IFormat16 { .. } | Format::JFormat { .. } => Ok(0),
+        Format::I16Format { .. } | Format::JFormat { .. } => Ok(0),
     };
 
     let imm = match format {
-        Format::IFormat16 { imm, .. } => {
+        Format::I16Format { imm, .. } => {
             let imm = imm
                 .parse::<u8>()
                 .with_context(|| format!("could not parse {}", imm))?;
@@ -149,7 +149,7 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
                 Err(anyhow!("invalid immidiate num {}", imm))
             }
         }
-        Format::IFormat32 { imm, .. } => {
+        Format::I32Format { imm, .. } => {
             let imm = imm
                 .parse::<i16>()
                 .with_context(|| format!("invalid imidiate num {}", imm))?;
@@ -181,13 +181,13 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
                 | ((rs & 0x001F) as u16) << 11;
             Ok(Word::Word16(line))
         }
-        Format::IFormat16 { .. } => {
+        Format::I16Format { .. } => {
             let line: u16 = ((opcode & 0x003F) as u16)
                 | ((rd & 0x001F) as u16) << 6
                 | ((imm & 0x001F) as u16) << 11;
             Ok(Word::Word16(line))
         }
-        Format::IFormat32 { .. } => {
+        Format::I32Format { .. } => {
             let line: u32 = ((opcode & 0x0000_003F) as u32)
                 | ((rd & 0x0000_001F) as u32) << 6
                 | ((rs & 0x0000_001F) as u32) << 11
