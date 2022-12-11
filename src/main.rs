@@ -23,13 +23,16 @@ fn main() -> Result<()> {
     let file = std::fs::File::open(&args.file_path)
         .with_context(|| format!("could not read file '{}'", &args.file_path.display()))?;
     let reader = BufReader::new(file);
+    let mut line_num = 0;
+
     for line in reader.lines() {
+        line_num += 1;
         let line = line.unwrap();
         if line.len() == 0 {
             continue;
         }
-        let format = parse(line)?;
-        convert(&format)?;
+        let format = parse(line).with_context(|| format!("line {}", line_num))?;
+        convert(&format).with_context(|| format!("line {}", line_num))?;
     }
 
     let file = std::fs::File::open(&args.file_path)

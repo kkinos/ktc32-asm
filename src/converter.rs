@@ -21,13 +21,13 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "sra" => Ok(0b001000),
             "slt" => Ok(0b001001),
             "sltu" => Ok(0b001010),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic)),
+            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
         },
         Format::I16Format { mnemonic, .. } => match mnemonic.as_str() {
             "slli" => Ok(0b010000),
             "srli" => Ok(0b010001),
             "srai" => Ok(0b010010),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic)),
+            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
         },
         Format::I32Format { mnemonic, .. } => match mnemonic.as_str() {
             "addi" => Ok(0b100000),
@@ -52,11 +52,11 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "sb" => Ok(0b110011),
             "sh" => Ok(0b110100),
             "sw" => Ok(0b110101),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic)),
+            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
         },
         Format::JFormat { mnemonic, .. } => match mnemonic.as_str() {
             "jal" => Ok(0b111111),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic)),
+            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
         },
     };
 
@@ -97,7 +97,7 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "r29" => Ok(0b11101),
             "r30" => Ok(0b11110),
             "r31" => Ok(0b11111),
-            _ => Err(anyhow!("unknown register {}", rd)),
+            _ => Err(anyhow!("unknown register {}", rd))?,
         },
     };
 
@@ -135,37 +135,48 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "r29" => Ok(0b11101),
             "r30" => Ok(0b11110),
             "r31" => Ok(0b11111),
-            _ => Err(anyhow!("unknown register {}", rs)),
+            _ => Err(anyhow!("unknown register {}", rs))?,
         },
         Format::I16Format { .. } | Format::JFormat { .. } => Ok(0),
     };
 
     let imm = match format {
         Format::I16Format { imm, .. } => {
-            let imm = imm
-                .parse::<u8>()
-                .with_context(|| format!("could not parse {}", imm))?;
+            let imm = if imm.starts_with("0x") {
+                u8::from_str_radix(imm.trim_start_matches("0x"), 16)?
+            } else {
+                imm.parse::<u8>()
+                    .with_context(|| format!("invalid immediate num {}", imm))?
+            };
             if imm <= 0b11111 {
                 Ok(imm as u32)
             } else {
-                Err(anyhow!("invalid immidiate num {}", imm))
+                Err(anyhow!("immediate num is too large {}", imm))?
             }
         }
         Format::I32Format { imm, .. } => {
-            let imm = imm
-                .parse::<i16>()
-                .with_context(|| format!("invalid imidiate num {}", imm))?;
+            let imm = if imm.starts_with("0x") {
+                u16::from_str_radix(imm.trim_start_matches("0x"), 16)?
+            } else {
+                imm.parse::<i16>()
+                    .with_context(|| format!("invalid immediate num {}", imm))?
+                    as u16
+            };
 
             Ok(imm as u32)
         }
         Format::JFormat { imm, .. } => {
-            let imm = imm
-                .parse::<i32>()
-                .with_context(|| format!("could not parse {}", imm))?;
-            if -(2_i32.pow(19)) < imm && imm < (2_i32.pow(19) - 1) {
+            let imm = if imm.starts_with("0x") {
+                u32::from_str_radix(imm.trim_start_matches("0x"), 16)?
+            } else {
+                imm.parse::<i32>()
+                    .with_context(|| format!("invalid immediate num {}", imm))?
+                    as u32
+            };
+            if -(2_i32.pow(19)) < (imm as i32) && (imm as i32) < (2_i32.pow(19) - 1) {
                 Ok(imm as u32)
             } else {
-                Err(anyhow!("invalid immidiate num {}", imm))
+                Err(anyhow!("invalid immediate num {}", imm))?
             }
         }
         Format::RFormat { .. } => Ok(0),
