@@ -1,4 +1,4 @@
-use crate::parser::Format;
+use crate::parser::{Format, Symbol};
 use anyhow::{anyhow, Context, Ok};
 
 #[derive(Debug)]
@@ -7,9 +7,11 @@ pub enum Word {
     Word32(u32),
 }
 
-pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
+pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word, anyhow::Error> {
     let opcode = match format {
-        Format::RFormat { mnemonic, .. } => match mnemonic.as_str() {
+        Format::RFormat {
+            mnemonic, line_num, ..
+        } => match mnemonic.as_str() {
             "mov" => Ok(0b000000),
             "add" => Ok(0b000001),
             "sub" => Ok(0b000010),
@@ -21,15 +23,19 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "sra" => Ok(0b001000),
             "slt" => Ok(0b001001),
             "sltu" => Ok(0b001010),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
+            _ => Err(anyhow!("line {} unknown mnemonic {}", line_num, mnemonic))?,
         },
-        Format::I16Format { mnemonic, .. } => match mnemonic.as_str() {
+        Format::I16Format {
+            mnemonic, line_num, ..
+        } => match mnemonic.as_str() {
             "slli" => Ok(0b010000),
             "srli" => Ok(0b010001),
             "srai" => Ok(0b010010),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
+            _ => Err(anyhow!("line {} unknown mnemonic {}", line_num, mnemonic))?,
         },
-        Format::I32Format { mnemonic, .. } => match mnemonic.as_str() {
+        Format::I32Format {
+            mnemonic, line_num, ..
+        } => match mnemonic.as_str() {
             "addi" => Ok(0b100000),
             "andi" => Ok(0b100001),
             "ori" => Ok(0b100010),
@@ -52,19 +58,22 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "sb" => Ok(0b110011),
             "sh" => Ok(0b110100),
             "sw" => Ok(0b110101),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
+            _ => Err(anyhow!("line {} unknown mnemonic {}", line_num, mnemonic))?,
         },
-        Format::JFormat { mnemonic, .. } => match mnemonic.as_str() {
+        Format::JFormat {
+            mnemonic, line_num, ..
+        } => match mnemonic.as_str() {
             "jal" => Ok(0b111111),
-            _ => Err(anyhow!("unknown mnemonic {}", mnemonic))?,
+            _ => Err(anyhow!("line {} unknown mnemonic {}", line_num, mnemonic))?,
         },
+        _ => Ok(0),
     };
 
     let rd = match format {
-        Format::RFormat { rd, .. }
-        | Format::I16Format { rd, .. }
-        | Format::I32Format { rd, .. }
-        | Format::JFormat { rd, .. } => match rd.as_str() {
+        Format::RFormat { rd, line_num, .. }
+        | Format::I16Format { rd, line_num, .. }
+        | Format::I32Format { rd, line_num, .. }
+        | Format::JFormat { rd, line_num, .. } => match rd.as_str() {
             "r0" => Ok(0b00000),
             "r1" => Ok(0b00001),
             "r2" => Ok(0b00010),
@@ -97,89 +106,116 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             "r29" => Ok(0b11101),
             "r30" => Ok(0b11110),
             "r31" => Ok(0b11111),
-            _ => Err(anyhow!("unknown register {}", rd))?,
+            _ => Err(anyhow!("line {} unknown register {}", line_num, rd))?,
         },
+        _ => Ok(0),
     };
 
     let rs = match format {
-        Format::RFormat { rs, .. } | Format::I32Format { rs, .. } => match rs.as_str() {
-            "r0" => Ok(0b00000),
-            "r1" => Ok(0b00001),
-            "r2" => Ok(0b00010),
-            "r3" => Ok(0b00011),
-            "r4" => Ok(0b00100),
-            "r5" => Ok(0b00101),
-            "r6" => Ok(0b00110),
-            "r7" => Ok(0b00111),
-            "r8" => Ok(0b01000),
-            "r9" => Ok(0b01001),
-            "r10" => Ok(0b01010),
-            "r11" => Ok(0b01011),
-            "r12" => Ok(0b01100),
-            "r13" => Ok(0b01101),
-            "r14" => Ok(0b01110),
-            "r15" => Ok(0b01111),
-            "r16" => Ok(0b10000),
-            "r17" => Ok(0b10001),
-            "r18" => Ok(0b10010),
-            "r19" => Ok(0b10011),
-            "r20" => Ok(0b10100),
-            "r21" => Ok(0b10101),
-            "r22" => Ok(0b10110),
-            "r23" => Ok(0b10111),
-            "r24" => Ok(0b11000),
-            "r25" => Ok(0b11001),
-            "r26" => Ok(0b11010),
-            "r27" => Ok(0b11011),
-            "r28" => Ok(0b11100),
-            "r29" => Ok(0b11101),
-            "r30" => Ok(0b11110),
-            "r31" => Ok(0b11111),
-            _ => Err(anyhow!("unknown register {}", rs))?,
-        },
-        Format::I16Format { .. } | Format::JFormat { .. } => Ok(0),
+        Format::RFormat { rs, line_num, .. } | Format::I32Format { rs, line_num, .. } => {
+            match rs.as_str() {
+                "r0" => Ok(0b00000),
+                "r1" => Ok(0b00001),
+                "r2" => Ok(0b00010),
+                "r3" => Ok(0b00011),
+                "r4" => Ok(0b00100),
+                "r5" => Ok(0b00101),
+                "r6" => Ok(0b00110),
+                "r7" => Ok(0b00111),
+                "r8" => Ok(0b01000),
+                "r9" => Ok(0b01001),
+                "r10" => Ok(0b01010),
+                "r11" => Ok(0b01011),
+                "r12" => Ok(0b01100),
+                "r13" => Ok(0b01101),
+                "r14" => Ok(0b01110),
+                "r15" => Ok(0b01111),
+                "r16" => Ok(0b10000),
+                "r17" => Ok(0b10001),
+                "r18" => Ok(0b10010),
+                "r19" => Ok(0b10011),
+                "r20" => Ok(0b10100),
+                "r21" => Ok(0b10101),
+                "r22" => Ok(0b10110),
+                "r23" => Ok(0b10111),
+                "r24" => Ok(0b11000),
+                "r25" => Ok(0b11001),
+                "r26" => Ok(0b11010),
+                "r27" => Ok(0b11011),
+                "r28" => Ok(0b11100),
+                "r29" => Ok(0b11101),
+                "r30" => Ok(0b11110),
+                "r31" => Ok(0b11111),
+                _ => Err(anyhow!("line {} unknown register {}", line_num, rs))?,
+            }
+        }
+        _ => Ok(0),
     };
 
     let imm = match format {
-        Format::I16Format { imm, .. } => {
+        Format::I16Format { imm, line_num, .. } => {
             let imm = if imm.starts_with("0x") {
-                u8::from_str_radix(imm.trim_start_matches("0x"), 16)?
+                u8::from_str_radix(imm.trim_start_matches("0x"), 16)
+                    .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
             } else {
                 imm.parse::<u8>()
-                    .with_context(|| format!("invalid immediate num {}", imm))?
+                    .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
             };
             if imm <= 0b11111 {
                 Ok(imm as u32)
             } else {
-                Err(anyhow!("immediate num is too large {}", imm))?
+                Err(anyhow!(
+                    "line {} immediate num is too large {}",
+                    line_num,
+                    imm
+                ))?
             }
         }
-        Format::I32Format { imm, .. } => {
+        Format::I32Format { imm, line_num, .. } => {
             let imm = if imm.starts_with("0x") {
-                u16::from_str_radix(imm.trim_start_matches("0x"), 16)?
+                u16::from_str_radix(imm.trim_start_matches("0x"), 16)
+                    .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
             } else {
-                imm.parse::<i16>()
-                    .with_context(|| format!("invalid immediate num {}", imm))?
+                let mut t = imm.clone();
+                for symbol in symbol_table {
+                    if imm == &symbol.name {
+                        t = format!("{}", symbol.address);
+                    }
+                }
+                t.parse::<i16>()
+                    .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
                     as u16
             };
 
             Ok(imm as u32)
         }
-        Format::JFormat { imm, .. } => {
+        Format::JFormat {
+            imm,
+            address,
+            line_num,
+            ..
+        } => {
             let imm = if imm.starts_with("0x") {
-                u32::from_str_radix(imm.trim_start_matches("0x"), 16)?
+                u32::from_str_radix(imm.trim_start_matches("0x"), 16)
+                    .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
             } else {
-                imm.parse::<i32>()
-                    .with_context(|| format!("invalid immediate num {}", imm))?
+                let mut t = imm.clone();
+                for symbol in symbol_table {
+                    if imm == &symbol.name {
+                        t = format!("{}", symbol.address - address - 4);
+                    }
+                }
+                t.parse::<i32>()
+                    .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
                     as u32
             };
             if -(2_i32.pow(19)) < (imm as i32) && (imm as i32) < (2_i32.pow(19) - 1) {
                 Ok(imm as u32)
             } else {
-                Err(anyhow!("invalid immediate num {}", imm))?
+                Err(anyhow!("line{} invalid immediate num {}", line_num, imm))?
             }
         }
-        Format::RFormat { .. } => Ok(0),
+        _ => Ok(0),
     };
 
     let opcode = opcode.unwrap();
@@ -211,6 +247,11 @@ pub fn convert(format: &Format) -> Result<Word, anyhow::Error> {
             let line: u32 = ((opcode & 0x0000_003F) as u32)
                 | ((rd & 0x0000_001F) as u32) << 6
                 | ((imm & 0x001F_FFFF) as u32) << 11;
+            Ok(Word::Word32(line))
+        }
+        Format::Const { num, line_num, .. } => {
+            let line: u32 = u32::from_str_radix(num.trim_start_matches("0x"), 16)
+                .with_context(|| format!("line {} invalid const num {}", line_num, num))?;
             Ok(Word::Word32(line))
         }
     }

@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufReader, Write};
 
 mod converter;
 mod parser;
@@ -23,16 +23,10 @@ fn main() -> Result<()> {
     let file = std::fs::File::open(&args.file_path)
         .with_context(|| format!("could not read file '{}'", &args.file_path.display()))?;
     let reader = BufReader::new(file);
-    let mut line_num = 0;
 
-    for line in reader.lines() {
-        line_num += 1;
-        let line = line.unwrap();
-        if line.len() == 0 {
-            continue;
-        }
-        let format = parse(line).with_context(|| format!("line {}", line_num))?;
-        convert(&format).with_context(|| format!("line {}", line_num))?;
+    let (parsed_lines, symbol_table) = parse(reader)?;
+    for format in parsed_lines {
+        convert(&format, &symbol_table)?;
     }
 
     let file = std::fs::File::open(&args.file_path)
@@ -42,13 +36,10 @@ fn main() -> Result<()> {
     let mut new_file = std::fs::File::create(&args.output_file)
         .with_context(|| format!("could not create file"))?;
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        if line.len() == 0 {
-            continue;
-        }
-        let format = parse(line)?;
-        let word = convert(&format)?;
+    let (parsed_lines, symbol_table) = parse(reader)?;
+    for format in parsed_lines {
+        let word = convert(&format, &symbol_table)?;
+
         match word {
             Word::Word16(n) => {
                 writeln!(new_file, "{:02x}", n & 0x00FF)?;
