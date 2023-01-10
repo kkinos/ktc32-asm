@@ -1,5 +1,5 @@
 use crate::parser::{Format, Symbol};
-use anyhow::{anyhow, Context, Ok};
+use anyhow::{anyhow, Context, Ok, Result};
 
 #[derive(Debug)]
 pub enum Word {
@@ -7,7 +7,7 @@ pub enum Word {
     Word32(u32),
 }
 
-pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word, anyhow::Error> {
+pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
     let opcode = match format {
         Format::RFormat {
             mnemonic, line_num, ..

@@ -46,7 +46,7 @@ pub struct Symbol {
     pub address: i64,
 }
 
-pub fn parse(reader: BufReader<File>) -> Result<(Vec<Format>, Vec<Symbol>), anyhow::Error> {
+pub fn parse(reader: BufReader<File>) -> Result<(Vec<Format>, Vec<Symbol>)> {
     let mut parsed_lines: Vec<Format> = Vec::new();
     let mut symbol_table: Vec<Symbol> = Vec::new();
     let mut address: i64 = 0;
