@@ -1,5 +1,8 @@
 # ktc32-asm
 
+[![Rust](https://github.com/kinpoko/ktc32-asm/actions/workflows/rust.yml/badge.svg)](https://github.com/kinpoko/ktc32-asm/actions/workflows/rust.yml)
+![License](https://img.shields.io/github/license/kinpoko/ktc32-asm?color=blue)
+
 [KTC32](https://github.com/kinpoko/ktc32) assembler
 
 ## Build
