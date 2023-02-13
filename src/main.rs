@@ -8,7 +8,7 @@ use converter::{convert, Word};
 use parser::parse;
 
 #[derive(Parser)]
-#[clap(version = "0.1", author = "kinpoko", about = "ktc32 assembler")]
+#[clap(version = "0.1", author = "kinpoko", about = "KTC32 assembler")]
 struct Cli {
     /// .asm file path
     file_path: std::path::PathBuf,

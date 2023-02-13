@@ -3,7 +3,7 @@
 [![Rust](https://github.com/kinpoko/ktc32-asm/actions/workflows/rust.yml/badge.svg)](https://github.com/kinpoko/ktc32-asm/actions/workflows/rust.yml)
 ![License](https://img.shields.io/github/license/kinpoko/ktc32-asm?color=blue)
 
-[KTC32](https://github.com/kinpoko/ktc32) assembler
+[KTC32](https://github.com/kinpoko/ktc32) assembler written in Rust.
 
 ## Build
 
@@ -16,7 +16,7 @@ cargo build --release
 
 ```bash
 ktc32-asm -h
-ktc32 assembler
+KTC32 assembler
 
 Usage: ktc32-asm [OPTIONS] <FILE_PATH>
 
@@ -33,9 +33,12 @@ Options:
 
 - Comment
 
-- Label
+```asm
+// loop
+jal r0, -4
+```
 
-`e.g.`
+- Label
 
 ```asm
 start:
@@ -46,8 +49,6 @@ label:
 ```
 
 - Constant
-
-`e.g.`
 
 ```asm
 start:
