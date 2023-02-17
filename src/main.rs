@@ -38,7 +38,7 @@ fn main() -> Result<()> {
     let reader = BufReader::new(file);
 
     let mut new_file = std::fs::File::create(&args.output_file)
-        .with_context(|| format!("could not create file"))?;
+        .with_context(|| "could not create file".to_string())?;
 
     let (parsed_lines, symbol_table, bytes) = parse(reader, args.bare_metal)?;
     if !args.bare_metal {

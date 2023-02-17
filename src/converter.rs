@@ -1,4 +1,4 @@
-use crate::parser::{Format, Symbol};
+use crate::parser::{Symbol, Type};
 use anyhow::{anyhow, Context, Ok, Result};
 
 #[derive(Debug)]
@@ -7,9 +7,9 @@ pub enum Word {
     Word32(u32),
 }
 
-pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
+pub fn convert(parsed_line: &Type, symbol_table: &Vec<Symbol>) -> Result<Word> {
     let opcode = match parsed_line {
-        Format::RFormat {
+        Type::RFormat {
             mnemonic, line_num, ..
         } => match mnemonic.as_str() {
             "mov" => Ok(0b000000),
@@ -25,7 +25,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
             "sltu" => Ok(0b001010),
             _ => Err(anyhow!("line {} unknown mnemonic {}", line_num, mnemonic))?,
         },
-        Format::I16Format {
+        Type::I16Format {
             mnemonic, line_num, ..
         } => match mnemonic.as_str() {
             "slli" => Ok(0b010000),
@@ -33,7 +33,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
             "srai" => Ok(0b010010),
             _ => Err(anyhow!("line {} unknown mnemonic {}", line_num, mnemonic))?,
         },
-        Format::I32Format {
+        Type::I32Format {
             mnemonic, line_num, ..
         } => match mnemonic.as_str() {
             "addi" => Ok(0b100000),
@@ -60,7 +60,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
             "sw" => Ok(0b110101),
             _ => Err(anyhow!("line {} unknown mnemonic {}", line_num, mnemonic))?,
         },
-        Format::JFormat {
+        Type::JFormat {
             mnemonic, line_num, ..
         } => match mnemonic.as_str() {
             "jal" => Ok(0b111111),
@@ -70,10 +70,10 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
     };
 
     let rd = match parsed_line {
-        Format::RFormat { rd, line_num, .. }
-        | Format::I16Format { rd, line_num, .. }
-        | Format::I32Format { rd, line_num, .. }
-        | Format::JFormat { rd, line_num, .. } => match rd.as_str() {
+        Type::RFormat { rd, line_num, .. }
+        | Type::I16Format { rd, line_num, .. }
+        | Type::I32Format { rd, line_num, .. }
+        | Type::JFormat { rd, line_num, .. } => match rd.as_str() {
             "r0" | "zero" => Ok(0b00000),
             "r1" | "ra" => Ok(0b00001),
             "r2" | "gp" => Ok(0b00010),
@@ -112,7 +112,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
     };
 
     let rs = match parsed_line {
-        Format::RFormat { rs, line_num, .. } | Format::I32Format { rs, line_num, .. } => {
+        Type::RFormat { rs, line_num, .. } | Type::I32Format { rs, line_num, .. } => {
             match rs.as_str() {
                 "r0" | "zero" => Ok(0b00000),
                 "r1" | "ra" => Ok(0b00001),
@@ -153,7 +153,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
     };
 
     let imm = match parsed_line {
-        Format::I16Format { imm, line_num, .. } => {
+        Type::I16Format { imm, line_num, .. } => {
             let imm = if imm.starts_with("0x") {
                 u8::from_str_radix(imm.trim_start_matches("0x"), 16)
                     .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
@@ -171,7 +171,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
                 ))?
             }
         }
-        Format::I32Format { imm, line_num, .. } => {
+        Type::I32Format { imm, line_num, .. } => {
             let imm = if imm.starts_with("0x") {
                 u16::from_str_radix(imm.trim_start_matches("0x"), 16)
                     .with_context(|| format!("line {} invalid immediate num {}", line_num, imm))?
@@ -189,7 +189,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
 
             Ok(imm as u32)
         }
-        Format::JFormat {
+        Type::JFormat {
             imm,
             address,
             line_num,
@@ -210,7 +210,7 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
                     as u32
             };
             if -(2_i32.pow(19)) < (imm as i32) && (imm as i32) < (2_i32.pow(19) - 1) {
-                Ok(imm as u32)
+                Ok(imm)
             } else {
                 Err(anyhow!("line{} invalid immediate num {}", line_num, imm))?
             }
@@ -224,32 +224,32 @@ pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word>
     let imm = imm.unwrap();
 
     match parsed_line {
-        Format::RFormat { .. } => {
+        Type::RFormat { .. } => {
             let line: u16 = ((opcode & 0x003F) as u16)
                 | ((rd & 0x001F) as u16) << 6
                 | ((rs & 0x001F) as u16) << 11;
             Ok(Word::Word16(line))
         }
-        Format::I16Format { .. } => {
+        Type::I16Format { .. } => {
             let line: u16 = ((opcode & 0x003F) as u16)
                 | ((rd & 0x001F) as u16) << 6
                 | ((imm & 0x001F) as u16) << 11;
             Ok(Word::Word16(line))
         }
-        Format::I32Format { .. } => {
+        Type::I32Format { .. } => {
             let line: u32 = ((opcode & 0x0000_003F) as u32)
                 | ((rd & 0x0000_001F) as u32) << 6
                 | ((rs & 0x0000_001F) as u32) << 11
-                | ((imm & 0x0000_FFFF) as u32) << 16;
+                | (imm & 0x0000_FFFF) << 16;
             Ok(Word::Word32(line))
         }
-        Format::JFormat { .. } => {
+        Type::JFormat { .. } => {
             let line: u32 = ((opcode & 0x0000_003F) as u32)
                 | ((rd & 0x0000_001F) as u32) << 6
-                | ((imm & 0x001F_FFFF) as u32) << 11;
+                | (imm & 0x001F_FFFF) << 11;
             Ok(Word::Word32(line))
         }
-        Format::Const { num, line_num, .. } => {
+        Type::Const { num, line_num, .. } => {
             let line: u32 = u32::from_str_radix(num.trim_start_matches("0x"), 16)
                 .with_context(|| format!("line {} invalid const num {}", line_num, num))?;
             Ok(Word::Word32(line))

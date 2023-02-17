@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 #[derive(Debug)]
-pub enum Format {
+pub enum Type {
     RFormat {
         mnemonic: String,
         rd: String,
@@ -46,16 +46,15 @@ pub struct Symbol {
     pub address: i64,
 }
 
-pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, Vec<Symbol>, u32)> {
-    let mut parsed_lines: Vec<Format> = Vec::new();
+pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Type>, Vec<Symbol>, u32)> {
+    let mut parsed_lines: Vec<Type> = Vec::new();
     let mut symbol_table: Vec<Symbol> = Vec::new();
     let mut address: i64 = if bare_metal { 0 } else { 256 };
 
-    let mut line_num = 0;
-    for line in reader.lines() {
-        line_num += 1;
+    for (line_num, line) in reader.lines().enumerate() {
+        let line_num = (line_num + 1) as u64;
         let line = line.unwrap();
-        if line.trim().len() == 0 || line.trim().starts_with("//") {
+        if line.trim().is_empty() || line.trim().starts_with("//") {
             continue;
         }
 
@@ -69,12 +68,12 @@ pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, 
             "mov" | "add" | "sub" | "and" | "or" | "xor" | "sll" | "srl" | "sra" | "slt"
             | "sltu" => {
                 if line.len() == 3 {
-                    parsed_lines.push(Format::RFormat {
+                    parsed_lines.push(Type::RFormat {
                         mnemonic: line[0].to_string(),
                         rd: line[1].to_string(),
                         rs: line[2].to_string(),
-                        address: address,
-                        line_num: line_num,
+                        address,
+                        line_num,
                     });
                     address += 2;
                 } else {
@@ -84,12 +83,12 @@ pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, 
 
             "slli" | "srli" | "srai" => {
                 if line.len() == 3 {
-                    parsed_lines.push(Format::I16Format {
+                    parsed_lines.push(Type::I16Format {
                         mnemonic: line[0].to_string(),
                         rd: line[1].to_string(),
                         imm: line[2].to_string(),
-                        address: address,
-                        line_num: line_num,
+                        address,
+                        line_num,
                     });
                     address += 2;
                 } else {
@@ -101,13 +100,13 @@ pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, 
             | "bltu" | "bgeu" | "jalr" | "lb" | "lh" | "lbu" | "lhu" | "lw" | "sb" | "sh"
             | "sw" => {
                 if line.len() == 4 {
-                    parsed_lines.push(Format::I32Format {
+                    parsed_lines.push(Type::I32Format {
                         mnemonic: line[0].to_string(),
                         rd: line[1].to_string(),
                         rs: line[2].to_string(),
                         imm: line[3].to_string(),
-                        address: address,
-                        line_num: line_num,
+                        address,
+                        line_num,
                     });
                     address += 4;
                 } else {
@@ -116,13 +115,13 @@ pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, 
             }
             "lui" => {
                 if line.len() == 3 {
-                    parsed_lines.push(Format::I32Format {
+                    parsed_lines.push(Type::I32Format {
                         mnemonic: line[0].to_string(),
                         rd: line[1].to_string(),
                         rs: "r0".to_string(),
                         imm: line[2].to_string(),
-                        address: address,
-                        line_num: line_num,
+                        address,
+                        line_num,
                     });
                     address += 4;
                 } else {
@@ -131,12 +130,12 @@ pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, 
             }
             "jal" => {
                 if line.len() == 3 {
-                    parsed_lines.push(Format::JFormat {
+                    parsed_lines.push(Type::JFormat {
                         mnemonic: line[0].to_string(),
                         rd: line[1].to_string(),
                         imm: line[2].to_string(),
-                        address: address,
-                        line_num: line_num,
+                        address,
+                        line_num,
                     });
                     address += 4;
                 } else {
@@ -144,16 +143,16 @@ pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, 
                 }
             }
             _ => {
-                if line.len() == 1 && line[0].ends_with(":") {
+                if line.len() == 1 && line[0].ends_with(':') {
                     symbol_table.push(Symbol {
-                        name: line[0].trim_end_matches(":").to_string(),
-                        address: address,
+                        name: line[0].trim_end_matches(':').to_string(),
+                        address,
                     });
                 } else if line.len() == 1 && line[0].starts_with("0x") {
-                    parsed_lines.push(Format::Const {
+                    parsed_lines.push(Type::Const {
                         num: line[0].to_string(),
-                        address: address,
-                        line_num: line_num,
+                        address,
+                        line_num,
                     });
                     address += 4;
                 } else {
