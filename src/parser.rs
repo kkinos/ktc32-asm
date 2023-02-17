@@ -46,10 +46,10 @@ pub struct Symbol {
     pub address: i64,
 }
 
-pub fn parse(reader: BufReader<File>) -> Result<(Vec<Format>, Vec<Symbol>)> {
+pub fn parse(reader: BufReader<File>, bare_metal: bool) -> Result<(Vec<Format>, Vec<Symbol>, u32)> {
     let mut parsed_lines: Vec<Format> = Vec::new();
     let mut symbol_table: Vec<Symbol> = Vec::new();
-    let mut address: i64 = 0;
+    let mut address: i64 = if bare_metal { 0 } else { 256 };
 
     let mut line_num = 0;
     for line in reader.lines() {
@@ -162,5 +162,12 @@ pub fn parse(reader: BufReader<File>) -> Result<(Vec<Format>, Vec<Symbol>)> {
             }
         }
     }
-    Ok((parsed_lines, symbol_table))
+
+    let bytes: u32 = if bare_metal {
+        (address) as u32
+    } else {
+        (address as u32) - 256
+    };
+
+    Ok((parsed_lines, symbol_table, bytes))
 }

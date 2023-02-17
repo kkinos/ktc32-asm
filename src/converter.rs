@@ -7,8 +7,8 @@ pub enum Word {
     Word32(u32),
 }
 
-pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
-    let opcode = match format {
+pub fn convert(parsed_line: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
+    let opcode = match parsed_line {
         Format::RFormat {
             mnemonic, line_num, ..
         } => match mnemonic.as_str() {
@@ -69,7 +69,7 @@ pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
         _ => Ok(0),
     };
 
-    let rd = match format {
+    let rd = match parsed_line {
         Format::RFormat { rd, line_num, .. }
         | Format::I16Format { rd, line_num, .. }
         | Format::I32Format { rd, line_num, .. }
@@ -111,7 +111,7 @@ pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
         _ => Ok(0),
     };
 
-    let rs = match format {
+    let rs = match parsed_line {
         Format::RFormat { rs, line_num, .. } | Format::I32Format { rs, line_num, .. } => {
             match rs.as_str() {
                 "r0" | "zero" => Ok(0b00000),
@@ -152,7 +152,7 @@ pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
         _ => Ok(0),
     };
 
-    let imm = match format {
+    let imm = match parsed_line {
         Format::I16Format { imm, line_num, .. } => {
             let imm = if imm.starts_with("0x") {
                 u8::from_str_radix(imm.trim_start_matches("0x"), 16)
@@ -223,7 +223,7 @@ pub fn convert(format: &Format, symbol_table: &Vec<Symbol>) -> Result<Word> {
     let rs = rs.unwrap();
     let imm = imm.unwrap();
 
-    match format {
+    match parsed_line {
         Format::RFormat { .. } => {
             let line: u16 = ((opcode & 0x003F) as u16)
                 | ((rd & 0x001F) as u16) << 6
