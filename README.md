@@ -25,6 +25,7 @@ Arguments:
 
 Options:
   -o <OUTPUT_FILE>      output file name [default: a.mem]
+  -b, --baremetal       assemble for bare metal
   -h, --help            Print help information
   -V, --version         Print version information
 ```
