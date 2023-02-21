@@ -3,7 +3,7 @@
 [![Rust](https://github.com/kinpoko/ktc32-asm/actions/workflows/rust.yml/badge.svg)](https://github.com/kinpoko/ktc32-asm/actions/workflows/rust.yml)
 ![License](https://img.shields.io/github/license/kinpoko/ktc32-asm?color=blue)
 
-[KTC32](https://github.com/kinpoko/ktc32) assembler written in Rust.
+ktc32-asm is an assembler written in Rust for [KTC32](https://github.com/kinpoko/ktc32), a hobby 32-bit CPU implemented in SystemVerilog.
 
 ## Build
 
@@ -30,16 +30,16 @@ Options:
   -V, --version         Print version information
 ```
 
-## Feature
+## Features
 
-- Comment
+- Comments: Single-line comments can be written using `//` syntax.
 
 ```asm
-// loop
-jal r0, -4
+// This is a comment
+addi r1, r0, 1
 ```
 
-- Label
+- Label: Labels can be used to mark a location in the code, and the corresponding address can be referenced using the label name.
 
 ```asm
 start:
@@ -49,7 +49,7 @@ label:
 	addi r1, r0, 1
 ```
 
-- Constant
+- Constants: Constants can be defined using a label and referenced in the code by using the label name.
 
 ```asm
 start:
